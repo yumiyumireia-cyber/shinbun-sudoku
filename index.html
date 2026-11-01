@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>しんぶん数独</title>
+<meta name="description" content="新聞の数独を写真で取りこんで、そのままスマホで解ける。アプリの問題でも遊べる。">
+<meta name="theme-color" content="#f4f1ea">
+<meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="しんぶん数独">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root {
+  --bg: #f4f1ea; --paper: #fff; --ink: #1d1d1d; --sub: #6b6458; --line: #8f8a80;
+  --accent: #2563c9; --accent-soft: #e3ecfb; --user: #1d5fc4;
+  --sel: #ffe27a; --peer: #eef1f5; --same: #fff2bf; --err: #d62828;
+  --colorcell: rgba(255, 160, 50, .34); --doubt: #ff7a00; --ok: #2f8a4e;
+  --board: 360px; --cell: calc(var(--board) / 9);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body {
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", -apple-system, "Noto Sans JP", sans-serif;
+  font-size: 18px; line-height: 1.6; -webkit-user-select: none; user-select: none;
+  -webkit-text-size-adjust: 100%;
+}
+button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; }
+.screen { display: none; min-height: 100dvh; padding: 12px 8px calc(16px + var(--safe-b)); max-width: 600px; margin: 0 auto; }
+.screen.on { display: flex; flex-direction: column; }
+.hidden { display: none !important; }
+
+/* ---- 上のバー ---- */
+.bar { display: flex; align-items: center; gap: 8px; min-height: 48px; margin-bottom: 8px; }
+.bar h2 { flex: 1; margin: 0; font-size: 20px; text-align: center; }
+.back { border: 0; background: none; font-size: 18px; padding: 8px 10px; color: var(--accent); font-weight: 600; min-width: 84px; text-align: left; }
+.bar .spacer { min-width: 84px; }
+
+/* ---- ホーム ---- */
+.title { text-align: center; margin: 18px 0 6px; }
+.title h1 { margin: 0; font-size: 30px; letter-spacing: .06em; }
+.title p { margin: 4px 0 0; color: var(--sub); font-size: 16px; }
+.big {
+  display: flex; align-items: center; gap: 14px; width: 100%; border: 0; border-radius: 16px;
+  background: var(--paper); padding: 16px 18px; margin: 8px 0; font-size: 20px; font-weight: 700;
+  box-shadow: 0 1px 0 rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.05); text-align: left;
+}
+.big .ic { font-size: 30px; line-height: 1; }
+.big small { display: block; font-size: 14px; font-weight: 400; color: var(--sub); }
+.big.primary { background: var(--accent); color: #fff; }
+.big.primary small { color: #dbe6fb; }
+h3.sec { font-size: 17px; color: var(--sub); margin: 20px 4px 4px; font-weight: 600; }
+.levels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lv { border: 0; border-radius: 14px; background: var(--paper); padding: 16px 8px; font-size: 19px; font-weight: 700;
+      box-shadow: 0 1px 0 rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.05); }
+.lv small { display: block; font-size: 13px; font-weight: 400; color: var(--sub); }
+.lv .stars { color: #e0a100; letter-spacing: 2px; font-size: 15px; }
+.textbtn { border: 0; background: none; color: var(--accent); font-size: 16px; padding: 12px 4px; text-decoration: underline; }
+.cont { list-style: none; margin: 0; padding: 0; }
+.cont li { display: flex; align-items: center; gap: 8px; background: var(--paper); border-radius: 14px; margin: 8px 0;
+           box-shadow: 0 1px 0 rgba(0,0,0,.06); }
+.cont .open { flex: 1; border: 0; background: none; text-align: left; padding: 12px 14px; font-size: 18px; }
+.cont .open b { display: block; }
+.cont .open span { font-size: 14px; color: var(--sub); }
+.cont .del { border: 0; background: none; font-size: 15px; color: var(--sub); padding: 12px 14px; }
+.empty-note { color: var(--sub); font-size: 15px; margin: 6px 4px; }
+.foot { margin-top: auto; padding-top: 24px; text-align: center; color: var(--sub); font-size: 13px; }
+
+/* ---- 盤面 ---- */
+.board {
+  width: var(--board); height: var(--board); margin: 0 auto; display: grid;
+  grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr);
+  background: var(--paper); border: 3px solid var(--ink); touch-action: manipulation; flex: none;
+}
+.cell {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  font-family: "Helvetica Neue", Arial, "Hiragino Sans", sans-serif; font-size: calc(var(--cell) * .64);
+  line-height: 1; font-variant-numeric: tabular-nums;
+}
+.cell.c2, .cell.c5 { border-right: 2.5px solid var(--ink); }
+.cell.c8 { border-right: 0; }
+.cell.r2, .cell.r5 { border-bottom: 2.5px solid var(--ink); }
+.cell.r8 { border-bottom: 0; }
+.cell.peer { background: var(--peer); }
+.cell.same { background: var(--same); }
+.cell.sel { background: var(--sel); }
+.cell.colored::before { content: ""; position: absolute; inset: 0; background: var(--colorcell); pointer-events: none; }
+.cell.given { font-weight: 700; color: var(--ink); }
+.cell.user { font-weight: 500; color: var(--user); }
+.cell.err { color: var(--err); }
+.cell.err.user::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: 10%; height: 2px; background: var(--err); }
+.cell.hinted { color: var(--ok); }
+.cell.doubt::after { content: ""; position: absolute; inset: 2px; border: 3px solid var(--doubt); border-radius: 6px; pointer-events: none; }
+.cell.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { 0% { background: #b9f0c9; } 100% { } }
+.memo { position: absolute; inset: 1px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
+.memo i { font-style: normal; font-size: calc(var(--cell) * .27); color: #5c5c5c; display: flex; align-items: center; justify-content: center; font-weight: 500; }
+.memo i.hl { color: #b06a00; font-weight: 800; }
+.photo-view { width: var(--board); height: var(--board); margin: 0 auto; display: block; border: 3px solid #999; object-fit: fill; }
+
+/* ---- 道具と数字ボタン ---- */
+.tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px auto 6px; width: var(--board); max-width: 100%; }
+.tool { border: 0; background: var(--paper); border-radius: 12px; padding: 6px 2px; font-size: 14px; line-height: 1.2;
+        display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 58px; justify-content: center;
+        box-shadow: 0 1px 0 rgba(0,0,0,.08); }
+.tool .ic { font-size: 22px; }
+.tool.on { background: var(--accent); color: #fff; }
+.tool:disabled { opacity: .4; }
+#play .tools { margin-top: auto; }   /* 片手で届くように、道具と数字は下に寄せる */
+#play .board { margin-top: 4px; }
+.pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: var(--board); max-width: 100%; margin: 0 auto; }
+.num { border: 0; border-radius: 12px; background: var(--paper); height: 62px; font-size: 32px; font-weight: 600;
+       font-family: "Helvetica Neue", Arial, sans-serif; color: var(--user); box-shadow: 0 1px 0 rgba(0,0,0,.1); }
+.num.erase { font-size: 16px; color: var(--ink); font-family: inherit; font-weight: 600; }
+.pad.memo-mode .num:not(.erase) { color: #7a5200; background: #fff6dc; font-size: 26px; }
+.num.used { opacity: .25; }
+.mode-note { text-align: center; font-size: 14px; color: #7a5200; min-height: 22px; margin: 2px 0 0; }
+
+/* ---- 四すみ合わせ ---- */
+.guide { text-align: center; margin: 0 4px 8px; font-size: 17px; }
+.guide b { color: var(--accent); }
+.corner-wrap { position: relative; margin: 0 auto; touch-action: none; }
+#cornerCanvas { display: block; touch-action: none; border-radius: 6px; }
+.row-btns { display: flex; gap: 10px; margin-top: 12px; }
+.row-btns > * { flex: 1; }
+.btn { border: 0; border-radius: 14px; padding: 15px 10px; font-size: 18px; font-weight: 700; background: var(--paper);
+       box-shadow: 0 1px 0 rgba(0,0,0,.1); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.ok { background: var(--ok); color: #fff; }
+
+/* ---- 確かめ画面 ---- */
+.edit-note { font-size: 15px; margin: 0 4px 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; color: var(--sub); margin: 0 4px 8px; }
+.sw { display: inline-block; width: 16px; height: 16px; vertical-align: -3px; border-radius: 4px; margin-right: 4px; }
+.sw.doubt { border: 3px solid var(--doubt); }
+.sw.color { background: var(--colorcell); border: 1px solid #e0a060; }
+.status { text-align: center; font-size: 15px; min-height: 24px; margin: 6px 0 0; }
+.status.bad { color: var(--err); font-weight: 600; }
+
+/* ---- 小窓 ---- */
+.overlay { position: fixed; inset: 0; background: rgba(30, 25, 15, .45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.sheet { background: var(--paper); border-radius: 20px; padding: 22px 18px 16px; width: 100%; max-width: 420px; text-align: center; }
+.sheet h2 { margin: 0 0 8px; font-size: 24px; }
+.sheet p { margin: 6px 0; }
+.sheet .btn { width: 100%; margin-top: 10px; }
+.clear-emoji { font-size: 54px; line-height: 1.1; }
+.colorsum { background: #fff4e3; border-radius: 12px; padding: 10px; margin: 10px 0; font-size: 18px; }
+.colorsum b { font-size: 26px; color: #b35c00; }
+.spinner { width: 44px; height: 44px; border: 5px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; margin: 6px auto 12px; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast { position: fixed; left: 50%; top: calc(8px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); background: #2b2b2b; color: #fff;
+         padding: 8px 16px; border-radius: 22px; font-size: 15px; z-index: 60; width: max-content; max-width: 94vw; text-align: center; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<!-- ホーム -->
+<section id="home" class="screen on">
+  <div class="title">
+    <h1>しんぶん数独</h1>
+    <p>新聞の数独を、そのままスマホで</p>
+  </div>
+
+  <button class="big primary" id="btnCamera"><span class="ic">📷</span><span>新聞の数独を撮る<small>盤面がまっすぐ入るように撮ってね</small></span></button>
+  <button class="big" id="btnPick"><span class="ic">🖼</span><span>写真から選ぶ<small>撮っておいた写真を使う</small></span></button>
+
+  <h3 class="sec">アプリの問題で遊ぶ</h3>
+  <div class="levels">
+    <button class="lv" data-level="1">やさしい<small class="stars">★</small></button>
+    <button class="lv" data-level="2">ふつう<small class="stars">★★</small></button>
+    <button class="lv" data-level="3">むずかしい<small class="stars">★★★</small></button>
+    <button class="lv" data-level="4">かなり難しい<small class="stars">★★★★</small></button>
+  </div>
+
+  <h3 class="sec">つづきから</h3>
+  <ul class="cont" id="contList"></ul>
+  <p class="empty-note" id="contEmpty">途中の問題はありません</p>
+
+  <button class="textbtn" id="btnHand">✏️ 写真なしで、数字を手で入れる</button>
+
+  <div class="foot">広告なし・ログインなし・通信なしで遊べます<br>データはこのスマホの中だけに保存されます</div>
+  <input type="file" id="fileCamera" accept="image/*" capture="environment" hidden>
+  <input type="file" id="filePick" accept="image/*" hidden>
+</section>
+
+<!-- 四すみ合わせ -->
+<section id="corners" class="screen">
+  <div class="bar"><button class="back" data-go="home">← もどる</button><h2>盤面の位置</h2><span class="spacer"></span></div>
+  <p class="guide" id="cornerGuide">盤面の<b>四すみ</b>に ● を合わせてね</p>
+  <div class="corner-wrap" id="cornerWrap"><canvas id="cornerCanvas"></canvas></div>
+  <div class="row-btns">
+    <button class="btn" id="btnRetake">↺ 撮りなおす</button>
+    <button class="btn primary" id="btnRead">この枠で読みとる</button>
+  </div>
+</section>
+
+<!-- 確かめ・手直し -->
+<section id="edit" class="screen">
+  <div class="bar"><button class="back" data-go="home">← やめる</button><h2 id="editTitle">読みとり結果</h2><span class="spacer"></span></div>
+  <p class="edit-note" id="editNote">数字が合っているか確かめてね。ちがうマスはタップして直せます。</p>
+  <div class="legend" id="editLegend">
+    <span><i class="sw doubt"></i>自信のないマス</span>
+    <span><i class="sw color"></i>色マス</span>
+  </div>
+  <div id="editBoard" class="board"></div>
+  <img id="editPhoto" class="photo-view hidden" alt="取りこんだ写真">
+  <div class="tools" style="grid-template-columns: repeat(2, 1fr)">
+    <button class="tool" id="btnPhoto"><span class="ic">📷</span>写真と見くらべる</button>
+    <button class="tool" id="btnColorMode"><span class="ic">🟧</span>色マスをつける</button>
+  </div>
+  <p class="mode-note" id="editMode"></p>
+  <div class="pad" id="editPad"></div>
+  <p class="status" id="editStatus"></p>
+  <button class="btn ok" id="btnStart" style="margin-top:10px">▶ これで解きはじめる</button>
+</section>
+
+<!-- 解く -->
+<section id="play" class="screen">
+  <div class="bar"><button class="back" data-go="home">← ホーム</button><h2 id="playTitle"></h2><span class="spacer"></span></div>
+  <div id="playBoard" class="board"></div>
+  <div class="tools">
+    <button class="tool" id="btnUndo"><span class="ic">↩︎</span>もどす</button>
+    <button class="tool" id="btnMemo"><span class="ic">✏️</span>メモ</button>
+    <button class="tool" id="btnHint"><span class="ic">💡</span>ヒント</button>
+    <button class="tool" id="btnCheck"><span class="ic">✔︎</span>まちがい<br>チェック</button>
+  </div>
+  <p class="mode-note" id="playMode"></p>
+  <div class="pad" id="playPad"></div>
+</section>
+
+<div id="overlay" class="overlay hidden"><div class="sheet" id="sheet"></div></div>
+
+<script src="sudoku.js"></script>
+<script src="ocr.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

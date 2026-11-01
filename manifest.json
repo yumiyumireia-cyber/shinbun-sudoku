@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "しんぶん数独",
+  "short_name": "しんぶん数独",
+  "description": "新聞の数独を写真で取りこんで、そのままスマホで解ける。アプリの問題でも遊べる。",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f1ea",
+  "theme_color": "#f4f1ea",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

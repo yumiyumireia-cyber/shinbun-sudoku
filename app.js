@@ -414,12 +414,16 @@
   }
 
   /* ---------- 解く ---------- */
-  var g = null, sel = -1, memoMode = false, history = [], lastFlash = -1;
-  var playCells = makeBoard($('playBoard'), function (i) { sel = sel === i ? -1 : i; paintPlay(); });
+  var g = null, sel = -1, memoMode = false, colorMode = false, history = [], lastFlash = -1;
+  var playCells = makeBoard($('playBoard'), function (i) {
+    if (colorMode) { g.colors[i] = g.colors[i] ? 0 : 1; paintPlay(); persistPlay(); return; }
+    sel = sel === i ? -1 : i; paintPlay();
+  });
   makePad($('playPad'), function (n) { input(n); });
 
   function startPlay(game) {
-    g = game; sel = -1; memoMode = false; history = [];
+    g = game; sel = -1; memoMode = false; colorMode = false; history = [];
+    if (!g.colors) g.colors = new Array(81).fill(0);
     $('playTitle').textContent = g.title;
     $('btnHint').disabled = !g.solution;
     $('btnCheck').disabled = !g.solution;
@@ -431,6 +435,7 @@
 
   function input(n) {
     if (!g || g.done) return;
+    if (colorMode) { toast('色マスモードです。終わったら🟧をもう一度押してね'); return; }
     if (sel < 0) { toast('先にマスをタップしてね'); return; }
     if (g.givens[sel]) { toast('最初から入っている数字は変えられません'); return; }
     if (n === 0) {
@@ -471,8 +476,11 @@
     $('btnMemo').classList.toggle('on', memoMode);
     $('btnCheck').classList.toggle('on', !!(settings.check && g.solution));
     $('btnUndo').disabled = !history.length;
+    $('btnPlayColor').classList.toggle('on', colorMode);
     $('playPad').classList.toggle('memo-mode', memoMode);
-    $('playMode').textContent = memoMode ? '✏️ メモ中：数字を押すと小さく書きこみます' : '';
+    $('playPad').style.opacity = colorMode ? '.35' : '';
+    $('playMode').textContent = colorMode ? '🟧 色マスにしたいマスをタップ（もう一度で外れる）'
+      : memoMode ? '✏️ メモ中：数字を押すと小さく書きこみます' : '';
     // 9こ全部置いた数字はうすくする
     var cnt = new Array(10).fill(0);
     g.vals.forEach(function (v) { if (v) cnt[v]++; });
@@ -485,7 +493,11 @@
     var h = history.pop(); if (!h) return;
     g.vals = h.v; g.memos = h.m; changed();
   };
-  $('btnMemo').onclick = function () { memoMode = !memoMode; paintPlay(); };
+  $('btnMemo').onclick = function () { memoMode = !memoMode; colorMode = false; paintPlay(); };
+  $('btnPlayColor').onclick = function () {
+    if (g && g.done) return;
+    colorMode = !colorMode; memoMode = false; sel = -1; paintPlay();
+  };
   $('btnCheck').onclick = function () {
     settings.check = !settings.check; save(KEY_SET, settings);
     toast(settings.check ? 'チェック ON：ちがう数字は赤' : 'チェック OFF');

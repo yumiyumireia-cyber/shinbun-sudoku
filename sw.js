@@ -1,5 +1,5 @@
 /* しんぶん数独 — オフライン用（一度ひらけば、通信なしで遊べる） */
-var VERSION = 'v1';
+var VERSION = 'v2';
 var SHELL = 'sudoku-shell-' + VERSION;
 var ASSETS = ['./', './index.html', './app.js', './sudoku.js', './ocr.js', './manifest.json',
               './icon-180.png', './icon-192.png', './icon-512.png', './icon-512-maskable.png'];

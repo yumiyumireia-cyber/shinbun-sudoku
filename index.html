@@ -112,7 +112,7 @@ h3.sec { font-size: 17px; color: var(--sub); margin: 20px 4px 4px; font-weight: 
 .tool .ic { font-size: 22px; }
 .tool.on { background: var(--accent); color: #fff; }
 .tool:disabled { opacity: .4; }
-#play .tools { margin-top: auto; }   /* 片手で届くように、道具と数字は下に寄せる */
+#play .tools { margin-top: auto; grid-template-columns: repeat(5, 1fr); }   /* 片手で届くように、道具と数字は下に寄せる */
 #play .board { margin-top: 4px; }
 .pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: var(--board); max-width: 100%; margin: 0 auto; }
 .num { border: 0; border-radius: 12px; background: var(--paper); height: 62px; font-size: 32px; font-weight: 600;
@@ -229,6 +229,7 @@ h3.sec { font-size: 17px; color: var(--sub); margin: 20px 4px 4px; font-weight: 
     <button class="tool" id="btnMemo"><span class="ic">✏️</span>メモ</button>
     <button class="tool" id="btnHint"><span class="ic">💡</span>ヒント</button>
     <button class="tool" id="btnCheck"><span class="ic">✔︎</span>まちがい<br>チェック</button>
+    <button class="tool" id="btnPlayColor"><span class="ic">🟧</span>色マス</button>
   </div>
   <p class="mode-note" id="playMode"></p>
   <div class="pad" id="playPad"></div>
